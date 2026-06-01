@@ -4,6 +4,7 @@ from torch.nn import functional as F
 from train import CratonTorchModel
 from tokenizer import CratonTokenizer
 import os
+import glob
 
 def train_mega_brain_kaggle():
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -15,23 +16,25 @@ def train_mega_brain_kaggle():
     # In Kaggle, we save to /kaggle/working/ so the output is preserved
     brain_path = '/kaggle/working/craton_megabrain.pth'
     
-    # We also check if we've uploaded a previous model to /kaggle/input/ as a dataset
-    input_brain_path = '/kaggle/input/craton-megabrain/craton_megabrain.pth'
+    # Search for the dataset brain dynamically (bypassing exact folder names)
+    input_brains = glob.glob('/kaggle/input/**/craton_megabrain.pth', recursive=True)
     
     if os.path.exists(brain_path):
         print("Found active working Mega-Brain! Loading...")
         model.load_state_dict(torch.load(brain_path, map_location=device, weights_only=True))
-    elif os.path.exists(input_brain_path):
+    elif len(input_brains) > 0:
         print("Found dataset Mega-Brain! Loading previous memories...")
-        model.load_state_dict(torch.load(input_brain_path, map_location=device, weights_only=True))
+        model.load_state_dict(torch.load(input_brains[0], map_location=device, weights_only=True))
     else:
         print("Starting Mega-Brain from scratch on Kaggle.")
     
-    # Assuming chunk_01 is uploaded as a Kaggle Dataset
-    chunk_path = '/kaggle/input/craton-knowledge/knowledge_chunk_01.c'
-    if not os.path.exists(chunk_path):
-        print(f"ERROR: Cannot find chunk at {chunk_path}. Please upload it as a Kaggle Dataset.")
+    # Search for the chunk dynamically
+    chunks = glob.glob('/kaggle/input/**/knowledge_chunk_01.c', recursive=True)
+    if len(chunks) == 0:
+        print("ERROR: Cannot find knowledge_chunk_01.c inside /kaggle/input/. Did you click 'Add Input' on the right panel?")
         return
+        
+    chunk_path = chunks[0]
         
     print("Absorbing Knowledge Chunk...")
     with open(chunk_path, 'r', encoding='utf-8') as f:
