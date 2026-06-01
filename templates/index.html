@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Craton Omni-Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <div class="glass-container">
+        <!-- Sidebar / Metrics -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="glow-orb"></div>
+                <h1>CRATON</h1>
+            </div>
+            <div class="metrics">
+                <div class="metric-card">
+                    <h3>BRAIN STATUS</h3>
+                    <p class="status online">ONLINE</p>
+                </div>
+                <div class="metric-card">
+                    <h3>PARAMETERS</h3>
+                    <p>198.4 Million</p>
+                </div>
+                <div class="metric-card">
+                    <h3>CONTEXT</h3>
+                    <p>1024 Tokens</p>
+                </div>
+                <div class="metric-card">
+                    <h3>ROOT ACCESS</h3>
+                    <p class="status active">GRANTED</p>
+                </div>
+            </div>
+            <div class="nav-links">
+                <a href="#" class="active">Neural Chat</a>
+                <a href="#">System Explorer</a>
+                <a href="#">Training Logs</a>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="chat-interface">
+            <header class="chat-header">
+                <h2>Terminal & Neural Sync</h2>
+                <p>Type a message to chat, or use <code>/</code> for Termux bash commands (e.g. <code>/ls -l</code>).</p>
+            </header>
+            
+            <div class="chat-history" id="chat-history">
+                <div class="message system">
+                    <div class="avatar">C</div>
+                    <div class="content">
+                        Craton Symbiosis initialized. Welcome, CEO. How can I assist you today?
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <div class="input-wrapper">
+                    <span class="prompt-symbol">&gt;</span>
+                    <input type="text" id="user-input" placeholder="Initiate command or dialogue..." autocomplete="off">
+                    <button id="send-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
