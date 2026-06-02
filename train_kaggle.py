@@ -14,6 +14,9 @@ def train_mega_brain_kaggle():
     model = CratonTorchModel(vocab_size=100277, d_model=1024, n_heads=16, n_layers=12).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4) 
     
+    # Initialize Mixed Precision Scaler to save massive amounts of VRAM
+    scaler = torch.amp.GradScaler('cuda') 
+    
     # In Kaggle, we save to /kaggle/working/ so the output is preserved
     brain_path = '/kaggle/working/craton_megabrain.pth'
     
@@ -52,7 +55,7 @@ def train_mega_brain_kaggle():
     ids = tokenizer.encode(all_text)
     train_data = torch.tensor(ids, dtype=torch.long)
     
-    def get_batch(batch_size=8, block_size=1024): 
+    def get_batch(batch_size=4, block_size=1024): 
         ix = torch.randint(len(train_data) - block_size, (batch_size,))
         x = torch.stack([train_data[i:i+block_size] for i in ix])
         y = torch.stack([train_data[i+1:i+block_size+1] for i in ix])
@@ -67,10 +70,15 @@ def train_mega_brain_kaggle():
         X, Y = get_batch()
         
         optimizer.zero_grad(set_to_none=True)
-        logits = model(X)
-        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), Y.view(-1))
-        loss.backward()
-        optimizer.step()
+        
+        # Use Automatic Mixed Precision (AMP) to cut VRAM usage in half
+        with torch.autocast(device_type='cuda', dtype=torch.float16):
+            logits = model(X)
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), Y.view(-1))
+            
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
         
         if step % 100 == 0:
             print(f"Epoch {step} | Mega-Brain Error (Loss): {loss.item():.4f}")
