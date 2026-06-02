@@ -6,14 +6,15 @@ def generate():
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"Booting Craton Inference Engine on {device.upper()}...")
     
-    model = CratonTorchModel().to(device)
+    # Initialize the massive Mega-Brain architecture
+    model = CratonTorchModel(d_model=1024, n_heads=16, n_layers=12).to(device)
     
-    # Load the trained brain weights
+    # Load the trained brain weights (You download this from Kaggle!)
     try:
-        model.load_state_dict(torch.load('craton_brain.pth', map_location=device, weights_only=True))
-        print("Neural weights successfully loaded. Craton is online.")
+        model.load_state_dict(torch.load('craton_megabrain.pth', map_location=device, weights_only=True))
+        print("Mega-Brain neural weights successfully loaded. Craton is online.")
     except FileNotFoundError:
-        print("WARNING: 'craton_brain.pth' not found! You must run the updated train.py first.")
+        print("WARNING: 'craton_megabrain.pth' not found in this folder! You must download it from Kaggle's Output tab and place it here.")
         return
         
     model.eval()
@@ -28,8 +29,8 @@ def generate():
     
     max_new_tokens = 300
     for _ in range(max_new_tokens):
-        # Keep context within the max sequence length of the brain (512)
-        idx_cond = idx[:, -512:]
+        # Keep context within the max sequence length of the Mega-Brain (2048)
+        idx_cond = idx[:, -2048:]
         
         with torch.no_grad():
             logits = model(idx_cond)
