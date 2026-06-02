@@ -9,7 +9,7 @@ from torch.nn import functional as F
 # -----------------------------------------------------------------------------
 
 class CratonTorchModel(nn.Module):
-    def __init__(self, vocab_size=100, d_model=256, n_heads=8, n_layers=4):
+    def __init__(self, vocab_size=100277, d_model=256, n_heads=8, n_layers=4):
         super().__init__()
         self.token_embedding = nn.Embedding(vocab_size, d_model)
         self.position_embedding = nn.Embedding(2048, d_model) # Expanded from 512 to handle Mega-Brain context length
@@ -68,7 +68,7 @@ def train():
         optimizer.zero_grad(set_to_none=True)
         logits = model(X)
         
-        loss = F.cross_entropy(logits.view(-1, 100), Y.view(-1))
+        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), Y.view(-1))
         loss.backward()
         optimizer.step()
         

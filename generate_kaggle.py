@@ -8,7 +8,7 @@ def generate_kaggle():
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"Booting Craton Inference Engine on {device.upper()}...")
     
-    model = CratonTorchModel(d_model=1024, n_heads=16, n_layers=12).to(device)
+    model = CratonTorchModel(vocab_size=100277, d_model=1024, n_heads=16, n_layers=12).to(device)
     
     # 1. Search for the trained brain dynamically in Kaggle
     brain_path = '/kaggle/working/craton_megabrain.pth'
@@ -28,7 +28,7 @@ def generate_kaggle():
     model.eval()
     tokenizer = CratonTokenizer()
     
-    prompt = "struct sched_entity {"
+    prompt = "<|USER|>\nHello! Can you explain quantum computing to me?\n<|ASSISTANT|>\n"
     print(f"\n[PROMPT]: {prompt}")
     print("--- CRATON SYNTHESIS ---")
     

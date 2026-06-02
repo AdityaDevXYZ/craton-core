@@ -1,25 +1,20 @@
+import tiktoken
+
 class CratonTokenizer:
     """
-    A custom, lightweight tokenizer built from scratch.
-    Neural Networks cannot read English letters. This script converts text strings 
-    into arrays of mathematical integer IDs that Craton's brain can process.
-    We are starting with a character-level tokenizer for extreme speed and low memory on the tablet.
+    Advanced Byte-Pair Encoding (BPE) Tokenizer.
+    Upgraded from Phase 1 character-level to Phase 6 sub-word level.
+    This gives Craton the exact same vocabulary efficiency as GPT-4.
     """
     def __init__(self):
-        # We start with basic ASCII characters for our zero-cost proof of concept
-        chars = sorted(list(set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 .,!?-:;'\"()[]{}<>@#$%^&*_=+\\|/\n\t`~")))
-        
-        self.vocab_size = len(chars) + 1 # +1 for unknown characters
-        
-        # Lookup tables
-        self.stoi = {ch: i for i, ch in enumerate(chars)}
-        self.itos = {i: ch for i, ch in enumerate(chars)}
-        self.unk_id = self.vocab_size - 1
+        # We use the cl100k_base tokenizer (GPT-4 standard)
+        self.encoder = tiktoken.get_encoding("cl100k_base")
+        self.vocab_size = self.encoder.n_vocab
 
     def encode(self, text):
         """String -> List of Integers"""
-        return [self.stoi.get(c, self.unk_id) for c in text]
+        return self.encoder.encode(text, allowed_special="all")
 
     def decode(self, ids):
         """List of Integers -> String"""
-        return ''.join([self.itos.get(i, "?") for i in ids])
+        return self.encoder.decode(ids)

@@ -6,8 +6,8 @@ def generate():
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"Booting Craton Inference Engine on {device.upper()}...")
     
-    # Initialize the massive Mega-Brain architecture
-    model = CratonTorchModel(d_model=1024, n_heads=16, n_layers=12).to(device)
+    # Initialize the massive Phase 6 Mega-Brain architecture
+    model = CratonTorchModel(vocab_size=100277, d_model=1024, n_heads=16, n_layers=12).to(device)
     
     # Load the trained brain weights (You download this from Kaggle!)
     try:
@@ -21,7 +21,7 @@ def generate():
     tokenizer = CratonTokenizer()
     
     # We feed Craton a starting prompt to see how it continues the C code
-    prompt = "struct sched_entity {"
+    prompt = "<|USER|>\nHello! Can you explain quantum computing to me?\n<|ASSISTANT|>\n"
     print(f"\n[PROMPT]: {prompt}")
     print("--- CRATON SYNTHESIS ---")
     

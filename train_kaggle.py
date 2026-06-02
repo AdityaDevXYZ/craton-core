@@ -10,7 +10,8 @@ def train_mega_brain_kaggle():
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"CRATON KAGGLE CLOUD INITIALIZING ON {device.upper()}...")
     
-    model = CratonTorchModel(d_model=1024, n_heads=16, n_layers=12).to(device)
+    # Phase 6: Expanded vocabulary support
+    model = CratonTorchModel(vocab_size=100277, d_model=1024, n_heads=16, n_layers=12).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4) 
     
     # In Kaggle, we save to /kaggle/working/ so the output is preserved
@@ -28,20 +29,27 @@ def train_mega_brain_kaggle():
     else:
         print("Starting Mega-Brain from scratch on Kaggle.")
     
-    # Search for the chunk dynamically
-    chunks = glob.glob('/kaggle/input/**/knowledge_chunk_01.c', recursive=True)
-    if len(chunks) == 0:
-        print("ERROR: Cannot find knowledge_chunk_01.c inside /kaggle/input/. Did you click 'Add Input' on the right panel?")
-        return
-        
-    chunk_path = chunks[0]
-        
-    print("Absorbing Knowledge Chunk...")
-    with open(chunk_path, 'r', encoding='utf-8') as f:
-        text = f.read()
-        
+    print("Downloading Phase 6 Conversational & Scientific Knowledge...")
+    import datasets
+    # 1. Load Conversational Data (OpenAssistant)
+    chat_dataset = datasets.load_dataset("OpenAssistant/oasst1", split="train[:1%]")
+    
+    # 2. Load Scientific Research Data (arXiv abstracts)
+    arxiv_dataset = datasets.load_dataset("gfissore/arxiv-abstracts-2021", split="train[:1%]")
+    
     tokenizer = CratonTokenizer()
-    ids = tokenizer.encode(text)
+    
+    # Format the conversations with <|USER|> and <|ASSISTANT|>
+    all_text = ""
+    for row in chat_dataset:
+        role = "<|USER|>" if row['role'] == 'prompter' else "<|ASSISTANT|>"
+        all_text += f"{role}\n{row['text']}\n"
+        
+    # Append scientific research to the brain's knowledge pool
+    for row in arxiv_dataset:
+        all_text += f"<|SYSTEM|>\nResearch Abstract: {row['title']}\n{row['abstract']}\n"
+        
+    ids = tokenizer.encode(all_text)
     train_data = torch.tensor(ids, dtype=torch.long)
     
     def get_batch(batch_size=8, block_size=1024): 
@@ -60,7 +68,7 @@ def train_mega_brain_kaggle():
         
         optimizer.zero_grad(set_to_none=True)
         logits = model(X)
-        loss = F.cross_entropy(logits.view(-1, 100), Y.view(-1))
+        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), Y.view(-1))
         loss.backward()
         optimizer.step()
         
