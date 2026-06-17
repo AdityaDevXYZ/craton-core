@@ -9,82 +9,85 @@ import os
 os.environ["HF_HOME"] = "/kaggle/working/huggingface"
 
 def train_lora_kaggle():
-    print("CRATON PHASE 7: ENTERPRISE LORA ENGINE INITIALIZING...")
-    
-    # We use Qwen2.5-7B because it is the most powerful completely open 7B model on earth.
-    # It rivals Llama-3-8B but requires no API keys or corporate gatekeepers.
-    model_id = "Qwen/Qwen2.5-7B"
-    
-    # 1. 4-Bit Quantization (Compressing a 14GB brain into 5GB)
-    print("Compressing the 7-Billion Parameter Base Brain...")
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_use_double_quant=True,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_compute_dtype=torch.bfloat16
-    )
-    
-    # Load the base model and tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
-    tokenizer.pad_token = tokenizer.eos_token
-    
-    model = AutoModelForCausalLM.from_pretrained(
-        model_id,
-        quantization_config=bnb_config,
-        device_map="auto"
-    )
-    
-    # 2. Prepare for LoRA
-    model.gradient_checkpointing_enable()
-    model = prepare_model_for_kbit_training(model)
-    
-    print("Attaching the Craton Neural Adapter...")
-    lora_config = LoraConfig(
-        r=16, 
-        lora_alpha=32, 
-        target_modules=["q_proj", "v_proj"], 
-        lora_dropout=0.05,
-        bias="none",
-        task_type="CAUSAL_LM"
-    )
-    model = get_peft_model(model, lora_config)
-    
-    # 3. Load the conversational and scientific datasets
-    print("Downloading Conversational & Scientific Datasets...")
-    dataset = load_dataset("OpenAssistant/oasst1", split="train[:2%]")
-    
-    # Format the data for the SFTTrainer
-    def formatting_func(example):
-        role = "<|USER|>" if example['role'] == 'prompter' else "<|ASSISTANT|>"
-        text = f"{role}\n{example['text']}\n"
-        return text
-    
-    # 4. Train the Adapter
-    print("Initiating LoRA Fine-Tuning Sequence on Kaggle GPU...")
-    training_args = TrainingArguments(
-        output_dir="/kaggle/working/craton_lora_adapter",
-        per_device_train_batch_size=4,
-        gradient_accumulation_steps=4,
-        learning_rate=2e-4,
-        max_steps=100, # Set to a fixed number of steps for the Kaggle 12-hour window
-        logging_steps=10,
-        optim="paged_adamw_8bit",
-        fp16=True,
-        save_strategy="no"
-    )
-    
-    trainer = SFTTrainer(
-        model=model,
-        train_dataset=dataset,
-        args=training_args,
-        formatting_func=formatting_func,
-    )
-    
-    trainer.train()
-    
-    # 5. Save ONLY the adapter (This will be a tiny ~50MB file instead of 14GB!)
-    print("Training Complete! Saving Craton LoRA Adapter...")
-    trainer.save_model("/kaggle/working/craton_lora_adapter")
+    try:
+        print("CRATON PHASE 7: ENTERPRISE LORA ENGINE INITIALIZING...")
+        
+        model_id = "Qwen/Qwen2.5-7B"
+        
+        print("Compressing the 7-Billion Parameter Base Brain...")
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.bfloat16
+        )
+        
+        tokenizer = AutoTokenizer.from_pretrained(model_id)
+        tokenizer.pad_token = tokenizer.eos_token
+        
+        # Force model entirely onto GPU 0 to prevent CPU-offload crashes
+        model = AutoModelForCausalLM.from_pretrained(
+            model_id,
+            quantization_config=bnb_config,
+            device_map={"": 0}
+        )
+        
+        model.gradient_checkpointing_enable()
+        model = prepare_model_for_kbit_training(model)
+        
+        print("Attaching the Craton Neural Adapter...")
+        lora_config = LoraConfig(
+            r=16, 
+            lora_alpha=32, 
+            target_modules=["q_proj", "v_proj"], 
+            lora_dropout=0.05,
+            bias="none",
+            task_type="CAUSAL_LM"
+        )
+        model = get_peft_model(model, lora_config)
+        
+        print("Downloading Conversational Datasets...")
+        dataset = load_dataset("OpenAssistant/oasst1", split="train[:2%]")
+        
+        # Format safely without relying on SFTTrainer's internal mapper
+        def format_row(x):
+            role = "<|USER|>" if x['role'] == 'prompter' else "<|ASSISTANT|>"
+            return {"formatted_text": f"{role}\n{x['text']}\n"}
+            
+        dataset = dataset.map(format_row)
+        
+        print("Initiating LoRA Fine-Tuning Sequence on Kaggle GPU...")
+        training_args = TrainingArguments(
+            output_dir="/kaggle/working/craton_lora_adapter",
+            per_device_train_batch_size=2, # Aggressively lowered to prevent OOM
+            gradient_accumulation_steps=4,
+            learning_rate=2e-4,
+            max_steps=60, # Keep it extremely short just to verify pipeline completion
+            logging_steps=10,
+            optim="paged_adamw_8bit",
+            fp16=True,
+            save_strategy="no"
+        )
+        
+        trainer = SFTTrainer(
+            model=model,
+            train_dataset=dataset,
+            dataset_text_field="formatted_text",
+            max_seq_length=512, # Explicitly limit brain context to prevent OOM spikes
+            args=training_args,
+        )
+        
+        trainer.train()
+        
+        print("Training Complete! Saving Craton LoRA Adapter...")
+        trainer.save_model("/kaggle/working/craton_lora_adapter")
+        
+    except Exception as e:
+        # If Kaggle crashes, write the exact error to a text file so it gets saved to the output!
+        with open("/kaggle/working/CRASH_LOG.txt", "w") as f:
+            import traceback
+            f.write(traceback.format_exc())
+        print(f"CRITICAL ERROR: {e}")
 
 if __name__ == "__main__":
     train_lora_kaggle()
