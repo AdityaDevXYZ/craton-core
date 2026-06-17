@@ -4,6 +4,9 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from trl import SFTTrainer
 import os
+# Force HuggingFace to download the massive 15GB model into Kaggle's 73GB partition,
+# instead of the tiny root partition which causes a silent crash.
+os.environ["HF_HOME"] = "/kaggle/working/huggingface"
 
 def train_lora_kaggle():
     print("CRATON PHASE 7: ENTERPRISE LORA ENGINE INITIALIZING...")

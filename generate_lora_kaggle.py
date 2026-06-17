@@ -3,6 +3,9 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from peft import PeftModel
 import os
 import glob
+# Force HuggingFace to download the massive 15GB model into Kaggle's 73GB partition,
+# instead of the tiny root partition which causes a silent crash.
+os.environ["HF_HOME"] = "/kaggle/working/huggingface"
 
 def generate_lora_kaggle():
     print("Booting Craton Phase 7 Inference Engine on CUDA...")
