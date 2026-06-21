@@ -1,8 +1,8 @@
 import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from datasets import load_dataset
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, TrainingArguments
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
-from trl import SFTTrainer
+from trl import SFTTrainer, SFTConfig
 import os
 # Force HuggingFace to download the massive 15GB model into Kaggle's 73GB partition,
 # instead of the tiny root partition which causes a silent crash.
@@ -58,7 +58,7 @@ def train_lora_kaggle():
         dataset = dataset.map(format_row)
         
         print("Initiating LoRA Fine-Tuning Sequence on Kaggle GPU...")
-        training_args = TrainingArguments(
+        training_args = SFTConfig(
             output_dir="/kaggle/working/craton_lora_adapter",
             per_device_train_batch_size=2, # Aggressively lowered to prevent OOM
             gradient_accumulation_steps=4,
@@ -67,13 +67,14 @@ def train_lora_kaggle():
             logging_steps=10,
             optim="paged_adamw_8bit",
             fp16=True,
-            save_strategy="no"
+            save_strategy="no",
+            max_seq_length=512, # Moved inside SFTConfig for new trl versions
+            dataset_text_field="text" # Ensure it reads our custom formatted column
         )
         
         trainer = SFTTrainer(
             model=model,
             train_dataset=dataset,
-            max_seq_length=512, # Explicitly limit brain context to prevent OOM spikes
             args=training_args,
         )
         
