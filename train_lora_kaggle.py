@@ -68,7 +68,7 @@ def train_lora_kaggle():
             optim="paged_adamw_8bit",
             fp16=True,
             save_strategy="no",
-            max_seq_length=512, # Moved inside SFTConfig for new trl versions
+            max_length=512, # Renamed from max_seq_length in newest trl versions
             dataset_text_field="text" # Ensure it reads our custom formatted column
         )
         
