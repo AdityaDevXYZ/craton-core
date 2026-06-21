@@ -29,7 +29,8 @@ def train_lora_kaggle():
         model = AutoModelForCausalLM.from_pretrained(
             model_id,
             quantization_config=bnb_config,
-            device_map={"": 0}
+            device_map={"": 0},
+            torch_dtype=torch.float16 # FORCE all non-quantized layers to float16
         )
         
         model.gradient_checkpointing_enable()

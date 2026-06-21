@@ -22,7 +22,8 @@ def generate_lora_kaggle():
     base_model = AutoModelForCausalLM.from_pretrained(
         model_id,
         quantization_config=bnb_config,
-        device_map="auto"
+        device_map="auto",
+        torch_dtype=torch.float16
     )
     
     # 2. Dynamically search for your trained LoRA adapter
