@@ -1,6 +1,6 @@
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
-from datasets import load_dataset
+from datasets import load_dataset, interleave_datasets
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from trl import SFTTrainer, SFTConfig
 import os
@@ -48,21 +48,28 @@ def train_lora_kaggle():
         model = get_peft_model(model, lora_config)
         
         print("Downloading Conversational Datasets...")
-        dataset = load_dataset("OpenAssistant/oasst1", split="train[:2%]")
+        ds_chat = load_dataset("OpenAssistant/oasst1", split="train[:10%]") # Grab a 10% slice
         
-        # Format safely without relying on SFTTrainer's internal mapper
-        def format_row(x):
+        def format_chat(x):
             role = "<|USER|>" if x['role'] == 'prompter' else "<|ASSISTANT|>"
-            x['text'] = f"{role}\n{x['text']}\n"
-            return x
+            return {"text": f"{role}\n{x['text']}\n"}
             
-        dataset = dataset.map(format_row)
+        ds_chat = ds_chat.map(format_chat, remove_columns=ds_chat.column_names)
         
-        # VERY IMPORTANT: OpenAssistant dataset has a column called 'labels' containing metadata.
-        # PyTorch sees the word 'labels' and tries to use it for Neural Network math, causing a catastrophic crash.
-        # We must strip all columns except our formatted 'text' column.
-        columns_to_remove = [col for col in dataset.column_names if col != 'text']
-        dataset = dataset.remove_columns(columns_to_remove)
+        print("Downloading Deep Scientific Research Datasets...")
+        # Grab a 5% slice of massive scientific papers
+        ds_science = load_dataset("ccdv/arxiv-summarization", split="train[:5%]")
+        
+        def format_science(x):
+            # Truncate the massive article to ~2000 chars to fit inside context window
+            article_snippet = x['article'][:2000] + "..."
+            prompt = f"<|USER|>\nSummarize the following scientific research:\n{article_snippet}\n<|ASSISTANT|>\n{x['abstract']}\n"
+            return {"text": prompt}
+            
+        ds_science = ds_science.map(format_science, remove_columns=ds_science.column_names)
+        
+        print("Fusing Datasets (60% Conversation / 40% Science)...")
+        dataset = interleave_datasets([ds_chat, ds_science], probabilities=[0.6, 0.4])
         
         print("Initiating LoRA Fine-Tuning Sequence on Kaggle GPU...")
         training_args = SFTConfig(
@@ -70,13 +77,15 @@ def train_lora_kaggle():
             per_device_train_batch_size=2, # Aggressively lowered to prevent OOM
             gradient_accumulation_steps=4,
             learning_rate=2e-4,
-            max_steps=60, # Keep it extremely short just to verify pipeline completion
+            max_steps=5000, # Massive overnight training run
             logging_steps=10,
             optim="paged_adamw_8bit",
             fp16=False, # Disable PyTorch GradScaler entirely to kill the unscale crash!
             bf16=False,
             max_grad_norm=0.3, # Explicitly limit gradient clipping
-            save_strategy="no",
+            save_strategy="steps", # Save checkpoints during the 12-hour run
+            save_steps=500, # Backup every 500 steps
+            save_total_limit=2, # Keep only the last 2 backups to save disk space
             max_length=512, # Renamed from max_seq_length in newest trl versions
             dataset_text_field="text" # Ensure it reads our custom formatted column
         )
