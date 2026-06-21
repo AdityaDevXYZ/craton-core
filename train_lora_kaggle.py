@@ -19,7 +19,7 @@ def train_lora_kaggle():
             load_in_4bit=True,
             bnb_4bit_use_double_quant=True,
             bnb_4bit_quant_type="nf4",
-            bnb_4bit_compute_dtype=torch.bfloat16
+            bnb_4bit_compute_dtype=torch.float16 # Fixed for Kaggle T4 architecture compatibility
         )
         
         tokenizer = AutoTokenizer.from_pretrained(model_id)
