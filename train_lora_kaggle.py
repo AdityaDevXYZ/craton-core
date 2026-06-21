@@ -57,6 +57,12 @@ def train_lora_kaggle():
             
         dataset = dataset.map(format_row)
         
+        # VERY IMPORTANT: OpenAssistant dataset has a column called 'labels' containing metadata.
+        # PyTorch sees the word 'labels' and tries to use it for Neural Network math, causing a catastrophic crash.
+        # We must strip all columns except our formatted 'text' column.
+        columns_to_remove = [col for col in dataset.column_names if col != 'text']
+        dataset = dataset.remove_columns(columns_to_remove)
+        
         print("Initiating LoRA Fine-Tuning Sequence on Kaggle GPU...")
         training_args = SFTConfig(
             output_dir="/kaggle/working/craton_lora_adapter",
