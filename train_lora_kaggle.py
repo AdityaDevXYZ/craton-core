@@ -52,7 +52,8 @@ def train_lora_kaggle():
         # Format safely without relying on SFTTrainer's internal mapper
         def format_row(x):
             role = "<|USER|>" if x['role'] == 'prompter' else "<|ASSISTANT|>"
-            return {"formatted_text": f"{role}\n{x['text']}\n"}
+            x['text'] = f"{role}\n{x['text']}\n"
+            return x
             
         dataset = dataset.map(format_row)
         
@@ -72,7 +73,6 @@ def train_lora_kaggle():
         trainer = SFTTrainer(
             model=model,
             train_dataset=dataset,
-            dataset_text_field="formatted_text",
             max_seq_length=512, # Explicitly limit brain context to prevent OOM spikes
             args=training_args,
         )
