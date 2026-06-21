@@ -72,7 +72,9 @@ def train_lora_kaggle():
             max_steps=60, # Keep it extremely short just to verify pipeline completion
             logging_steps=10,
             optim="paged_adamw_8bit",
-            fp16=True,
+            fp16=True, # We MUST use fp16 on T4, NOT bf16
+            bf16=False,
+            max_grad_norm=0.3, # Explicitly limit gradient clipping
             save_strategy="no",
             max_length=512, # Renamed from max_seq_length in newest trl versions
             dataset_text_field="text" # Ensure it reads our custom formatted column
