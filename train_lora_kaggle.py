@@ -73,7 +73,7 @@ def train_lora_kaggle():
             max_steps=60, # Keep it extremely short just to verify pipeline completion
             logging_steps=10,
             optim="paged_adamw_8bit",
-            fp16=True, # We MUST use fp16 on T4, NOT bf16
+            fp16=False, # Disable PyTorch GradScaler entirely to kill the unscale crash!
             bf16=False,
             max_grad_norm=0.3, # Explicitly limit gradient clipping
             save_strategy="no",
